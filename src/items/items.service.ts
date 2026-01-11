@@ -30,6 +30,7 @@ export class ItemsService {
                 price,
                 description,
                 status: ItemStatus.ON_SALE,
+                userId: '',
             },
         });
     }
