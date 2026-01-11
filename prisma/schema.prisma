@@ -10,7 +10,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-//  url      = env("DATABASE_URL")
+  // Prisma7ではurlはオプションですが、拡張機能の警告を避けるため明示的に指定
+  url      = env("DATABASE_URL")
 }
 
 model Item {
