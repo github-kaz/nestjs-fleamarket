@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -16,10 +17,11 @@ import { JwtModule } from '@nestjs/jwt';
         if (!secret) {
           throw new Error('JWT_SECRET environment variable is required');
         }
+        const expiresIn = configService.get<string>('JWT_EXPIRES_IN', '1h');
         return {
           secret,
           signOptions: {
-            expiresIn: configService.get<string>('JWT_EXPIRES_IN', '1h') as any,
+            expiresIn: expiresIn as StringValue | number,
           },
         };
       },
