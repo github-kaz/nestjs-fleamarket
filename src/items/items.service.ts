@@ -46,13 +46,13 @@ export class ItemsService {
         });
     }
 
-    async delete(id: string): Promise<Item> {
+    async delete(id: string, userId: string): Promise<Item> {
         // 存在チェック（findById内で例外が投げられる）
         await this.findById(id);
         
         // DBから削除
         return await this.prismaService.item.delete({
-            where: { id },
+            where: { id, userId },
         });
     }
 }
