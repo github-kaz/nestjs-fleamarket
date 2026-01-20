@@ -30,12 +30,17 @@ export class ItemsController {
     }
 
     @Put(':id')
+    @UseGuards(AuthGuard('jwt'))
     async updateStatus(@Param('id', ParseUUIDPipe) id: string): Promise<Item> {
         return await this.itemsService.updateStatus(id);
     }
 
     @Delete(':id')
-    async delete(@Param('id', ParseUUIDPipe) id: string): Promise<Item> {
-        return await this.itemsService.delete(id);
+    @UseGuards(AuthGuard('jwt'))
+    async delete(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Request() req: ExpressRequest & { user: RequestUser },
+    ): Promise<Item> {
+        return await this.itemsService.delete(id, req.user.id);
     }
 }
