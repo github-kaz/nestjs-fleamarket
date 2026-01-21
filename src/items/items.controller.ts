@@ -5,7 +5,7 @@ import type { Item } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { UseGuards } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
-import { RequestUser } from 'src/types/requestUser';
+import { RequestUser } from '../types/requestUser';
 
 @Controller('items')
 export class ItemsController {
