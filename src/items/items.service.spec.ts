@@ -3,11 +3,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Test } from '@nestjs/testing';
 import { Item, ItemStatus } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
+import { CreateItemDto } from './dto/create-item.dto';
 
 const mockPrismaService = {
     item: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
     },
 };
 
@@ -62,4 +66,89 @@ describe('ItemsServiceTest', () => {
             await expect(itemsService.findById('test-id1')).rejects.toThrow(NotFoundException);
         });
     });
+
+    describe('create', () => {
+        it('正常系', async () => {
+            const createItemDto: CreateItemDto = {
+                name: 'test-item1',
+                price: 100,
+                description: '',
+            };
+            const userId = 'test-user1';
+            const expected: Item = {
+              id: 'test-id1',
+              name: createItemDto.name,
+              price: createItemDto.price,
+              description: createItemDto.description || null,
+              status: ItemStatus.ON_SALE,
+              createdAt: new Date('2024-01-01'),
+              updatedAt: new Date('2024-01-01'),
+              userId,
+            };
+            (prismaService.item.create as jest.Mock).mockResolvedValue(expected);
+            const result = await itemsService.create(createItemDto, userId);
+            expect(result).toEqual(expected);
+            expect(prismaService.item.create).toHaveBeenCalledWith({
+                data: {
+                  name: createItemDto.name,
+                  price: createItemDto.price,
+                  description: createItemDto.description,
+                  status: ItemStatus.ON_SALE,
+                  userId,
+                },
+            });
+        });
+    });
+
+    describe('updateStatus', () => {
+        it('正常系', async () => {
+            const item: Item = {
+                id: 'test-id1',
+                name: 'test-item1',
+                price: 100,
+                description: '',
+                status: ItemStatus.ON_SALE,
+                createdAt: new Date('2024-01-01'),
+                updatedAt: new Date('2024-01-01'),
+                userId: 'test-user1',
+            };
+            (prismaService.item.update as jest.Mock).mockResolvedValue(item);
+            (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+            const result = await itemsService.updateStatus('test-id1');
+            expect(result).toEqual(item);
+            expect(prismaService.item.findUnique).toHaveBeenCalledWith({
+                where: { id: 'test-id1' },
+            });
+            expect(prismaService.item.update).toHaveBeenCalledWith({
+                data: { status: ItemStatus.SOLD_OUT },
+                where: { id: 'test-id1' },
+            });
+        });
+    });
+
+    describe('delete', () => {
+        it('正常系', async () => {
+            const item: Item = {
+                id: 'test-id1',
+                name: 'test-item1',
+                price: 100,
+                description: '',
+                status: ItemStatus.ON_SALE,
+                createdAt: new Date('2024-01-01'),
+                updatedAt: new Date('2024-01-01'),
+                userId: 'test-user1',
+            };
+            (prismaService.item.delete as jest.Mock).mockResolvedValue(item);
+            (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+            const result = await itemsService.delete('test-id1', 'test-user1');
+            expect(result).toEqual(item);
+            expect(prismaService.item.findUnique).toHaveBeenCalledWith({
+                where: { id: 'test-id1' },
+            });
+            expect(prismaService.item.delete).toHaveBeenCalledWith({
+                where: { id: 'test-id1', userId: 'test-user1' },
+            });
+        });
+    });
+
 });
