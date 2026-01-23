@@ -10,34 +10,36 @@ import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private readonly prismaService: PrismaService,
-        private readonly jwtService: JwtService,
-    ) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-    async createUser(createUserDto: CreateUserDto): Promise<User> {
-        const { name, email, password, status } = createUserDto;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        return await this.prismaService.user.create({
-            data: { name, email, password: hashedPassword, status },
-        });
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
+    const { name, email, password, status } = createUserDto;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return await this.prismaService.user.create({
+      data: { name, email, password: hashedPassword, status },
+    });
+  }
+
+  async signIn(
+    credentialsDto: CredentialsDto,
+  ): Promise<{ accessToken: string }> {
+    const { email, password } = credentialsDto;
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const payload: JwtPayload = {
+        sub: user.id,
+        username: user.name,
+        status: user.status,
+      };
+      const accessToken = this.jwtService.sign(payload);
+      return { accessToken };
     }
 
-    async signIn(credentialsDto: CredentialsDto): Promise<{ accessToken: string }> {
-        const { email, password } = credentialsDto;
-        const user = await this.prismaService.user.findUnique({
-            where: { email },
-        });
-        if (user && await bcrypt.compare(password, user.password)) {
-            const payload: JwtPayload = {
-                sub: user.id,
-                username: user.name,
-                status: user.status,
-            };
-            const accessToken = this.jwtService.sign(payload);
-            return { accessToken };
-        }
-
-        throw new UnauthorizedException('Invalid email or password');
-    }
+    throw new UnauthorizedException('Invalid email or password');
+  }
 }

@@ -8,19 +8,19 @@ import { RequestUser } from '../../types/requestUser';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(private configService: ConfigService) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: configService.get<string>('JWT_SECRET')!,
-        });
-    }
+  constructor(private configService: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET')!,
+    });
+  }
 
-    async validate(payload: JwtPayload): Promise<RequestUser> {
-        return {
-             id: payload.sub,
-             name: payload.username,
-             status: payload.status,
-        };
-    }
+  validate(payload: JwtPayload): RequestUser {
+    return {
+      id: payload.sub,
+      name: payload.username,
+      status: payload.status,
+    };
+  }
 }
