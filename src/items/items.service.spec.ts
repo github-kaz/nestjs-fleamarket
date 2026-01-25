@@ -13,6 +13,7 @@ const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 describe('ItemsServiceTest', () => {
@@ -87,10 +88,24 @@ describe('ItemsServiceTest', () => {
         updatedAt: new Date('2024-01-01'),
         userId,
       };
-      (prismaService.item.create as jest.Mock).mockResolvedValue(expected);
+
+      // トランザクション内のモックオブジェクト
+      const mockTx = {
+        item: {
+          create: jest.fn().mockResolvedValue(expected),
+        },
+      };
+
+      // $transaction がコールバック関数を実行するようにモック
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
       const result = await itemsService.create(createItemDto, userId);
       expect(result).toEqual(expected);
-      expect(prismaService.item.create).toHaveBeenCalledWith({
+      expect(mockTx.item.create).toHaveBeenCalledWith({
         data: {
           name: createItemDto.name,
           price: createItemDto.price,
@@ -114,18 +129,56 @@ describe('ItemsServiceTest', () => {
         updatedAt: new Date('2024-01-01'),
         userId: 'test-user1',
       };
+      const updatedItem: Item = {
+        ...item,
+        status: ItemStatus.SOLD_OUT,
+      };
       const userId = 'test-user1';
-      (prismaService.item.update as jest.Mock).mockResolvedValue(item);
-      (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+
+      // トランザクション内のモックオブジェクト
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(item),
+          update: jest.fn().mockResolvedValue(updatedItem),
+        },
+      };
+
+      // $transaction がコールバック関数を実行するようにモック
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
       const result = await itemsService.updateStatus('test-id1', userId);
-      expect(result).toEqual(item);
-      expect(prismaService.item.findUnique).toHaveBeenCalledWith({
+      expect(result).toEqual(updatedItem);
+      expect(mockTx.item.findUnique).toHaveBeenCalledWith({
         where: { id: 'test-id1' },
       });
-      expect(prismaService.item.update).toHaveBeenCalledWith({
+      expect(mockTx.item.update).toHaveBeenCalledWith({
         data: { status: ItemStatus.SOLD_OUT },
-        where: { id: 'test-id1' },
+        where: { id: 'test-id1', userId: 'test-user1' },
       });
+    });
+
+    it('異常系: 商品が存在しない', async () => {
+      const userId = 'test-user1';
+
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+      };
+
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
+      await expect(
+        itemsService.updateStatus('test-id1', userId),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('異常系: 所有者でない', async () => {
@@ -140,7 +193,19 @@ describe('ItemsServiceTest', () => {
         userId: 'test-user1',
       };
       const differentUserId = 'test-user2';
-      (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(item),
+        },
+      };
+
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
       await expect(
         itemsService.updateStatus('test-id1', differentUserId),
       ).rejects.toThrow(ForbiddenException);
@@ -160,16 +225,48 @@ describe('ItemsServiceTest', () => {
         userId: 'test-user1',
       };
       const userId = 'test-user1';
-      (prismaService.item.delete as jest.Mock).mockResolvedValue(item);
-      (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(item),
+          delete: jest.fn().mockResolvedValue(item),
+        },
+      };
+
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
       const result = await itemsService.delete('test-id1', userId);
       expect(result).toEqual(item);
-      expect(prismaService.item.findUnique).toHaveBeenCalledWith({
+      expect(mockTx.item.findUnique).toHaveBeenCalledWith({
         where: { id: 'test-id1' },
       });
-      expect(prismaService.item.delete).toHaveBeenCalledWith({
-        where: { id: 'test-id1' },
+      expect(mockTx.item.delete).toHaveBeenCalledWith({
+        where: { id: 'test-id1', userId: 'test-user1' },
       });
+    });
+
+    it('異常系: 商品が存在しない', async () => {
+      const userId = 'test-user1';
+
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+      };
+
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
+      await expect(itemsService.delete('test-id1', userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('異常系: 所有者でない', async () => {
@@ -184,7 +281,19 @@ describe('ItemsServiceTest', () => {
         userId: 'test-user1',
       };
       const differentUserId = 'test-user2';
-      (prismaService.item.findUnique as jest.Mock).mockResolvedValue(item);
+
+      const mockTx = {
+        item: {
+          findUnique: jest.fn().mockResolvedValue(item),
+        },
+      };
+
+      (prismaService.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return await callback(mockTx);
+        },
+      );
+
       await expect(
         itemsService.delete('test-id1', differentUserId),
       ).rejects.toThrow(ForbiddenException);
