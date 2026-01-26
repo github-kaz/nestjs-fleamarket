@@ -100,6 +100,4 @@ npm test
 # カバレッジ確認
 npm run test:cov
 
-# E2Eテスト
-npm run test:e2e
 ```
