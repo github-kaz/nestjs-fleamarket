@@ -18,6 +18,7 @@ NestJSを用いたWebバックエンド設計の学習に加え、
 - RDB（PostgreSQL想定）  
   フリマサービスにおいては、
   データ整合性とトランザクション管理が重要なためRDBを採用。
+  開発環境ではDocker上のPostgreSQLを使用しています。
 
 ## アーキテクチャ設計
 
@@ -71,7 +72,7 @@ NestJSを用いたWebバックエンド設計の学習に加え、
 
 ### 必要な環境
 - Node.js 18以上
-- PostgreSQL 16以上
+- Docker Desktop（PostgreSQLはDocker上で動作させる想定）
 - npm または yarn
 
 ### インストール
@@ -80,9 +81,13 @@ NestJSを用いたWebバックエンド設計の学習に加え、
 # 依存関係のインストール
 npm install
 
+# DockerでPostgreSQLを起動
+docker compose up -d
+
 # 環境変数の設定
 cp .env.example .env
 # .envファイルを編集してDATABASE_URLを設定
+# 例: postgresql://nestjsuser:nestjspass@localhost:5432/fleamarket
 
 # データベースマイグレーション
 npx prisma migrate dev
